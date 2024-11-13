@@ -61,7 +61,7 @@ export default class UserStore {
             }).toString();
     
             // Redirect to the login endpoint with query parameters
-            window.location.href = `https://localhost:7274/login?${queryParams}&buttons=army,edu,email`;
+            window.location.href = `https://localhost:7274/login?${queryParams}&buttons=army,edu,email,google`;
         } catch (error) {
             console.error("Login error:", error);
         }
@@ -69,8 +69,9 @@ export default class UserStore {
     // Method to log out the user
     logout = async () => {
         try {
-            await this.userManager.signoutRedirect();
+           // await this.userManager.signoutRedirect();
             this.token = null;
+            window.localStorage.removeItem('jwt');
         } catch (error) {
             console.error("Logout error:", error);
         }
@@ -113,4 +114,17 @@ export default class UserStore {
     get isLoggedIn() {
         return !!this.token;
     }
+
+    getTokenPayload = () => {
+        if (!this.token) return null;
+
+        try {
+            const payload = this.token.split('.')[1]; // JWT structure is header.payload.signature
+            const decodedPayload = JSON.parse(atob(payload));
+            return JSON.stringify(decodedPayload, null, 2); // Format as a pretty JSON string
+        } catch (error) {
+            console.error("Error decoding token payload:", error);
+            return null;
+        }
+    };
 }

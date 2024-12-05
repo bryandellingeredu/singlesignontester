@@ -13,12 +13,10 @@ builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("CorsPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3000") // Allow both HTTP and HTTPS origins
-               .AllowAnyHeader()
-               .AllowAnyMethod()
-               .AllowCredentials(); // Specify allowed origins
+        policy.AllowAnyOrigin() // Allow all origins
+              .AllowAnyHeader() // Allow all headers
+              .AllowAnyMethod(); // Allow all methods (GET, POST, PUT, DELETE, etc.)
     });
- 
 });
 
 // Step 2: Add authentication services using JWT Bearer authentication
@@ -36,7 +34,8 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuer = true,
         ValidateAudience = true,
-        ValidateLifetime = true,
+         ValidateLifetime = true,
+         ClockSkew = TimeSpan.Zero,
         ValidIssuer = "https://localhost:7274", // SSO server issuer
         ValidAudience = "resource-server-1", // Expected audience
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("YourSuperSecureRandomSecretKey123!"))

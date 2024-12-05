@@ -1,9 +1,10 @@
-import { makeAutoObservable, reaction } from "mobx";
+import { makeAutoObservable, reaction, runInAction } from "mobx";
 import { UserManager, WebStorageStateStore, User } from 'oidc-client-ts';
 
 export default class UserStore {
     token: string | null = null;
     userManager: UserManager;
+    refreshTokenTimeout?: ReturnType<typeof setTimeout>;
 
     constructor() {
         makeAutoObservable(this);
@@ -12,10 +13,10 @@ export default class UserStore {
         const config = {
             authority: 'https://localhost:7274', // OpenIddict server URL
             client_id: 'new-client-id', // The client ID registered in OpenIddict
-            redirect_uri: 'http://localhost:3000/callback', // Redirect URI after successful login
+            redirect_uri: 'https://localhost:3000/callback', // Redirect URI after successful login
             response_type: 'code', // Authorization Code Flow
             scope: 'openid profile email', // Include required scopes
-            post_logout_redirect_uri: 'http://localhost:3000/',
+            post_logout_redirect_uri: 'https://localhost:3000/',
             userStore: new WebStorageStateStore({ store: window.localStorage })
         };
 
@@ -44,6 +45,7 @@ export default class UserStore {
         this.userManager.getUser().then(user => {
             if (user && !user.expired) {
                 this.token = user.access_token;
+                this.startRefreshTokenTimer();
             } else {
                 this.token = null;
             }
@@ -51,6 +53,19 @@ export default class UserStore {
             console.error("User loading error:", error);
         });
     }
+
+      // Method to log out the user
+      logout = async () => {
+        try {
+           // await this.userManager.signoutRedirect();
+            this.token = null;
+            window.localStorage.removeItem('jwt');
+            this.stopRefreshTokenTimer();
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
+    }
+
 
     // Method to start the login process by redirecting to the /login endpoint on your server
     login = () => {
@@ -66,17 +81,7 @@ export default class UserStore {
             console.error("Login error:", error);
         }
     };
-    // Method to log out the user
-    logout = async () => {
-        try {
-           // await this.userManager.signoutRedirect();
-            this.token = null;
-            window.localStorage.removeItem('jwt');
-        } catch (error) {
-            console.error("Logout error:", error);
-        }
-    }
-
+  
     // Method to handle the callback after login
     handleCallback = async () => {
         try {
@@ -88,6 +93,7 @@ export default class UserStore {
                 this.token = token;
                 console.log("Token obtained from query string:", token);
                 window.localStorage.setItem('jwt', this.token);
+                this.startRefreshTokenTimer();
             } else {
                 console.warn("No token found in the callback URL.");
             }
@@ -95,7 +101,9 @@ export default class UserStore {
             console.error("Callback error:", error);
         }
     };
-    renewToken = async () => {
+
+
+  /*  renewToken = async () => {
         try {
             const user = await this.userManager.signinSilent();
             if (user) {
@@ -108,7 +116,7 @@ export default class UserStore {
             console.error("Token renewal error:", error);
             this.token = null;
         }
-    }
+    } */
 
     // Computed property to check if the user is logged in
     get isLoggedIn() {
@@ -127,4 +135,56 @@ export default class UserStore {
             return null;
         }
     };
+
+    refreshToken = async () => {
+        this.stopRefreshTokenTimer(); // Stops any ongoing refresh timers
+      
+        try {
+          const response = await fetch("https://localhost:7274/setrefreshtoken", {
+            method: "GET", // HTTP GET method
+            credentials: "include", // Include cookies in the request
+            headers: {
+              "Content-Type": "application/json", // Optional but a good practice
+            },
+          });
+      
+          if (!response.ok) {
+            // Handle non-2xx HTTP responses
+            throw new Error(`Failed to refresh token: ${response.status} ${response.statusText}`);
+          }
+      
+          const data = await response.json(); // Parse the JSON response
+          const { token } = data; // Extract the new access token
+      
+          // Save the new token (e.g., in localStorage, context, or state)
+          runInAction(() => this.token = token);
+          console.log("Token obtained from refresh token:", token);
+          window.localStorage.setItem('jwt', token);
+      
+          // Optionally, restart the refresh token timer based on token expiration
+          this.startRefreshTokenTimer();
+      
+          console.log("Token refreshed successfully:", token);
+        } catch (error) {
+          console.error("Error refreshing token:", error);
+      
+          // Handle the error, e.g., redirect to login or show a message
+          //this.handleRefreshTokenError(error);
+        }
+      };
+
+    private startRefreshTokenTimer(){
+        if(this.token){
+            const jwtToken = JSON.parse(atob(this.token.split('.')[1]));
+            const expires = new Date(jwtToken.exp * 1000);
+            const timeout = expires.getTime() - Date.now() - (30 * 1000);
+            this.refreshTokenTimeout = setTimeout(this.refreshToken, timeout);
+            console.log({refreshTimeout: this.refreshTokenTimeout});
+
+        }
+    }
+
+    private stopRefreshTokenTimer(){
+        clearTimeout(this.refreshTokenTimeout);
+    }
 }

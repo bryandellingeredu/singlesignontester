@@ -9,14 +9,16 @@ export default class UserStore {
     constructor() {
         makeAutoObservable(this);
 
+        //local authority https://localhost:7274
+
         // Configuration for the OpenIddict server
         const config = {
-            authority: 'https://localhost:7274', // OpenIddict server URL
-            client_id: 'new-client-id', // The client ID registered in OpenIddict
-            redirect_uri: 'https://localhost:3000/callback', // Redirect URI after successful login
+            authority: import.meta.env.VITE_AUTHORITY, // OpenIddict server URL
+            client_id: import.meta.env.VITE_CLIENT_ID, // The client ID registered in OpenIddict
+            redirect_uri: import.meta.env.VITE_REDIRECT_URI, // Redirect URI after successful login
             response_type: 'code', // Authorization Code Flow
             scope: 'openid profile email', // Include required scopes
-            post_logout_redirect_uri: 'https://localhost:3000/',
+            post_logout_redirect_uri: import.meta.env.VITE_POST_LOGOUT_REDIRECT_URI,
             userStore: new WebStorageStateStore({ store: window.localStorage })
         };
 
@@ -76,7 +78,8 @@ export default class UserStore {
             }).toString();
     
             // Redirect to the login endpoint with query parameters
-            window.location.href = `https://localhost:7274/login?${queryParams}&buttons=army,edu,email,google`;
+            // local  window.location.href = `https://localhost:7274/login?${queryParams}&buttons=army,edu,email,google`
+            window.location.href = `${import.meta.env.VITE_AUTHORITY}/login?${queryParams}&buttons=army,edu,email,google`;
         } catch (error) {
             console.error("Login error:", error);
         }
@@ -84,6 +87,7 @@ export default class UserStore {
   
     // Method to handle the callback after login
     handleCallback = async () => {
+        console.log('handle callback');
         try {
             // Manually parse the token from the query string
             const urlParams = new URLSearchParams(window.location.search);
@@ -103,22 +107,6 @@ export default class UserStore {
     };
 
 
-  /*  renewToken = async () => {
-        try {
-            const user = await this.userManager.signinSilent();
-            if (user) {
-                this.token = user.access_token;
-            } else {
-                this.token = null;
-                console.warn("Token renewal failed: No user returned from signinSilent.");
-            }
-        } catch (error) {
-            console.error("Token renewal error:", error);
-            this.token = null;
-        }
-    } */
-
-    // Computed property to check if the user is logged in
     get isLoggedIn() {
         return !!this.token;
     }
@@ -137,10 +125,11 @@ export default class UserStore {
     };
 
     refreshToken = async () => {
+        console.log('starting refresh token');
         this.stopRefreshTokenTimer(); // Stops any ongoing refresh timers
-      
+        // local https://localhost:7274/setrefreshtoken
         try {
-          const response = await fetch("https://localhost:7274/setrefreshtoken", {
+          const response = await fetch(`${import.meta.env.VITE_AUTHORITY}/setrefreshtoken`, {
             method: "GET", // HTTP GET method
             credentials: "include", // Include cookies in the request
             headers: {
@@ -174,6 +163,7 @@ export default class UserStore {
       };
 
     private startRefreshTokenTimer(){
+        console.log('start refresh token timer');
         if(this.token){
             const jwtToken = JSON.parse(atob(this.token.split('.')[1]));
             const expires = new Date(jwtToken.exp * 1000);
@@ -185,6 +175,7 @@ export default class UserStore {
     }
 
     private stopRefreshTokenTimer(){
+        console.log('stop refresh token timer');
         clearTimeout(this.refreshTokenTimeout);
     }
 }

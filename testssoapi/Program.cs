@@ -27,8 +27,10 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // Set to true in production with HTTPS
+    options.RequireHttpsMetadata = true; // Set to true in production with HTTPS
     options.SaveToken = true; // Save the token for potential retrieval
+
+    //local valid issuer https://localhost:7274
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -36,7 +38,7 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
          ValidateLifetime = true,
          ClockSkew = TimeSpan.Zero,
-        ValidIssuer = "https://localhost:7274", // SSO server issuer
+        ValidIssuer = "https://apps.armywarcollege.edu/SingleSignOn", // SSO server issuer
         ValidAudience = "resource-server-1", // Expected audience
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("YourSuperSecureRandomSecretKey123!"))
     };

@@ -79,7 +79,7 @@ export default class UserStore {
     
             // Redirect to the login endpoint with query parameters
             // local  window.location.href = `https://localhost:7274/login?${queryParams}&buttons=army,edu,email,google`
-            window.location.href = `${import.meta.env.VITE_AUTHORITY}/login?${queryParams}&buttons=army,edu,email,google`;
+            window.location.href = `${import.meta.env.VITE_AUTHORITY_BASE_URL}/login?${queryParams}&buttons=army,edu,email,google`;
         } catch (error) {
             console.error("Login error:", error);
         }
@@ -129,7 +129,7 @@ export default class UserStore {
         this.stopRefreshTokenTimer(); // Stops any ongoing refresh timers
         // local https://localhost:7274/setrefreshtoken
         try {
-          const response = await fetch(`${import.meta.env.VITE_AUTHORITY}/setrefreshtoken`, {
+          const response = await fetch(`${import.meta.env.VITE_AUTHORITY_BASE_URL}/setrefreshtoken`, {
             method: "GET", // HTTP GET method
             credentials: "include", // Include cookies in the request
             headers: {

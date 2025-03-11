@@ -31,6 +31,7 @@ builder.Services.AddAuthentication(options =>
     options.SaveToken = true; // Save the token for potential retrieval
 
     //local valid issuer https://localhost:7274
+   //  ValidIssuer = "https://apps.armywarcollege.edu/SingleSignOn"
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
